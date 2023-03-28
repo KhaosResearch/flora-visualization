@@ -6,7 +6,7 @@ import folium
 import pandas as pd
 import streamlit as st
 from config import settings
-from pymongo import MongoClient
+from utils import generate_map
 from streamlit_folium import folium_static
 from mongo_client import get_collection_object
 
@@ -41,13 +41,8 @@ cliente = minio_connection()
 
 st.title("Mapa de ubicación de cultivos")
 
+crop_map = generate_map()
 
-m = folium.Map(
-    location=[37.45809015669285, -4.085584126756898],
-    zoom_start=7,
-    width="100%",
-    height="100%",
-)
 
 # Initialize the query list with a query for the selected dates
 query_list = []
@@ -177,8 +172,8 @@ for document in cursor:
         [document["Latitude"], document["Longitude"]],
         popup=(popup),
         tooltip=document["Crop"],
-    ).add_to(m)
-    m.add_child(marker)
+    ).add_to(crop_map)
+    crop_map.add_child(marker)
 
 # Add the map to the Streamlit app
-st_data = folium_static(m)
+folium_static(crop_map, height=500, width=1300)
