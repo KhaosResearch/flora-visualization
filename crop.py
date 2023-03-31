@@ -34,14 +34,14 @@ def variety_selection(crop_list_variety, crop):
 
 
 
-collection = get_collection_object()
+collection = get_collection_object(settings.MONGO_DATABASE, settings.MONGO_COLLECTION)
 
-cliente = minio_connection()
+client = minio_connection()
 
 
 st.title("Mapa de ubicación de cultivos")
 
-crop_map = generate_map()
+crop_map = generate_map([36.71485, -4.49663], 15)
 
 
 # Initialize the query list with a query for the selected dates
@@ -154,7 +154,7 @@ for document in cursor:
     for i in range(num_pics):
         # Retrieve and encode the image from Minio
         minio_image = (
-            cliente.get_object(settings.MINIO_BUCKET, document["Pictures"][i])
+            client.get_object(settings.MINIO_BUCKET, document["Pictures"][i])
         ).read()
         encoded = base64.b64encode(minio_image).decode()
         # Create HTML code to display the image

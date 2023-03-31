@@ -12,6 +12,9 @@ class _Settings(BaseSettings):
     MINIO_BUCKET: str = None
     MINIO_ACCESS_KEY: str = "minio"
     MINIO_SECRET_KEY: str = "minio"
+    MONGO_COLLECTION_FLORA: str = None
+    MONGO_DB_FLORA: str = None
+
 
 
     class Config:

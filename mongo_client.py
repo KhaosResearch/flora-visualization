@@ -14,7 +14,7 @@ def mongo_connection() -> MongoClient:
     return client
 
 
-def get_collection_object() -> Collection:
+def get_collection_object(db, collection) -> Collection:
     client = mongo_connection()
 
-    return client[settings.MONGO_DATABASE][settings.MONGO_COLLECTION]
+    return client[db][collection]
