@@ -56,6 +56,7 @@ end_date = end_date + datetime.timedelta(days=1)
 end_date = end_date.strftime("%Y/%m/%dT00:00:00.000Z").replace("/", "-")
 start_date = (start_date.strftime("%Y/%m/%d") + "T00:00:00.000Z").replace("/", "-")
 
+print("hkkk", type(start_date))
 query_list.append({"$or": [{"created_at": {"$gte": start_date, "$lt": end_date}}]})
 
 # Add a filter for the selected crops
