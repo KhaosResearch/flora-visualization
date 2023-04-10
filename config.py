@@ -6,17 +6,13 @@ from pydantic import BaseSettings
 class _Settings(BaseSettings):
     MONGO_URI: str = None
 
-    MONGO_BD_SOIL: str = None
-    MONGO_COLLECTION__SOIL: str = None
-
     MONGO_COLLECTION_FLORA: str = None
     MONGO_DB_FLORA: str = None
 
-    MINIO_HOST: str = None
+    MONGO_COLLECTION_GENOM: str = None
+    MONGO_DB_GENOM: str = None
 
-    MINIO_BUCKET_SOIL: str = None
-    MINIO_ACCESS_KEY_SOIL: str = "minio"
-    MINIO_SECRET_KEY_SOIL: str = "minio"
+    MINIO_HOST: str = None
     
     MINIO_BUCKET_FLORA: str = None
     MINIO_ACCESS_KEY_FLORA: str = "minio"
