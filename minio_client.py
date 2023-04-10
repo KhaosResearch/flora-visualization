@@ -4,12 +4,12 @@ from config import settings
 
 
 @st.cache_resource
-def minio_connection() -> Minio:
+def minio_connection(access_key, secret_key) -> Minio:
     print("Creating minio client")
     client = Minio(
         settings.MINIO_HOST,
-        access_key=settings.MINIO_ACCESS_KEY,
-        secret_key=settings.MINIO_SECRET_KEY,
+        access_key=access_key,
+        secret_key=secret_key,
         secure = True
         
     )

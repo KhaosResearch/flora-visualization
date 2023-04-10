@@ -1,14 +1,14 @@
-import altair as alt
+
 from minio_client import minio_connection
 import folium
-import pandas as pd
 import streamlit as st
 import datetime
 from streamlit_folium import folium_static
 from mongo_client import get_collection_object
-from utils import generate_map, popup_html
+from utils import generate_map, popup_html_from_mongo
 from config import settings
 import base64
+
 
 
 # Set the page configuration
@@ -18,44 +18,43 @@ collection = get_collection_object(
     settings.MONGO_DB_FLORA, settings.MONGO_COLLECTION_FLORA
 )
 
-client = minio_connection()
+client = minio_connection(settings.MINIO_ACCESS_KEY_FLORA, settings.MINIO_SECRET_KEY_FLORA)
 
 
 st.title("Flora map")
 
 crop_map = generate_map([37.3522, -4.64363], 8)
 
-
+#all_samples = st.sidebar.checkbox("View all samples")
 with st.sidebar.form(key="my_form"):
 
     id_unique = collection.distinct("_id")
-    _id = st.multiselect("ID", id_unique)
+    _id = st.multiselect("ID", id_unique, help= "Optional")
+    min_date = datetime.datetime(1980,1,1)
+    max_date = datetime.date.today()
 
-    start_date = st.date_input(
-        "Start date", value=datetime.date(1980, 1, 1)
-    )
-    start_date = datetime.datetime.combine(start_date, datetime.datetime.min.time())
+    range_date = st.date_input(
+        "Date range",(min_date, max_date))
+    start_date = datetime.datetime.combine(range_date[0], datetime.datetime.min.time())
+    end_date = datetime.datetime.combine(range_date[1], datetime.datetime.min.time())
 
-    end_date = st.date_input("End date")
-    end_date = datetime.datetime.combine(end_date, datetime.datetime.min.time())
-    
 
     community_unique = collection.distinct("Community", {"Community": { "$ne": None }})
-    community = st.multiselect("Community", community_unique)
+    community = st.multiselect("Community", community_unique, help= "Optional")
 
     subcommunity_unique = collection.distinct("Subcommunity", {"Subcommunity": { "$ne": None }})
-    subcommunity = st.multiselect("Subcommunity", subcommunity_unique)
+    subcommunity = st.multiselect("Subcommunity", subcommunity_unique, help= "Optional")
 
     natural_site_uniques = collection.distinct("Natural_Site", {"Natural_Site": { "$ne": None }})
-    natural_site = st.multiselect("Natural Site", natural_site_uniques)
+    natural_site = st.multiselect("Natural Site", natural_site_uniques, help= "Optional")
 
     species_unique = collection.distinct("Species.Name", {"Species.Name": { "$ne": None }})
-    species = st.multiselect("Species name", species_unique)
+    species = st.multiselect("Species name", species_unique, help= "Optional")
 
     author_unique = collection.distinct("Authors", {"Authors": { "$ne": None }})
-    author = st.multiselect("Author", author_unique)
+    author = st.multiselect("Author", author_unique, help= "Optional")
 
-    location = st.text_input("Location")
+    location = st.text_input("Location", help= "Optional. Search for multiple locations by typing them with a comma between them. Such as 'locaion1,location2'.")
     if location and not all(elem == "" for elem in location):
         location = location.split(",")
         cnt = 0
@@ -68,18 +67,13 @@ with st.sidebar.form(key="my_form"):
         if cnt == 0:
             st.sidebar.error("No one location found.")
 
-    submit_button = st.form_submit_button(label="Filter", help="Submit Button")
+    submit_button = st.form_submit_button(label="Search", help="Submit Button")
+
 
 query_list = []
 
 if start_date and end_date:
     query_list.append({"created_at": {"$gte": start_date, "$lte": end_date}})
-
-if start_date and not end_date:
-    query_list.append({"created_at": {"$gte": start_date}})
-
-if not start_date and end_date:
-    query_list.append({"created_at": {"$lte": end_date}})
 
 if community:
     community_exp = []
@@ -139,7 +133,6 @@ if _id:
 
 
 if species:
-
     species_exp = []
     for particular_species in species:
         if len(particular_species) > 0:
@@ -198,18 +191,35 @@ except Exception as e:
 # For each matching document, create a marker on the map with a popup containing the document's images
 
 
-if submit_button:
+if submit_button: #or all_samples 
     for document in cursor:
-
         num_pics = len(document["Pictures"])
+        html_list = []
+        for i in range(num_pics):
+            # Retrieve and encode the image from Minio
+            path = (document["Pictures"][i]).split("/",1)[1]
+            minio_image = (
+                client.get_object(settings.MINIO_BUCKET_FLORA, path)
+            ).read()
+            encoded = base64.b64encode(minio_image).decode()
+            # Create HTML code to display the image
+            html = f""" <table>
+                                <tr>
+                                <td><strong><img src= 'data:image/png;base64,{encoded}'></strong></td>
+                                </tr>
+                            </table>"""
+            html_list.append(html)
 
-        # print("sdffdddd", )
+        html_img = "".join(html_list)
+        html = popup_html_from_mongo(document, html_img)
+        iframe = folium.IFrame(html, width=550, height= 520)
+        popup = folium.Popup(iframe)
+        
         # There are some sample without location
         if document["Latitude"] and document["Longitude"]:
-            # print("cccccc",document)
             marker = folium.Marker(
                 [document["Latitude"], document["Longitude"]],
-                popup=document["Community"],
+                popup=popup,
                 tooltip=document["Community"],
             ).add_to(crop_map)
             crop_map.add_child(marker)

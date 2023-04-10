@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 import datetime
 from streamlit_folium import folium_static
-from utils import generate_map, popup_html
+from utils import generate_map, popup_html_from_df
 
 
 
@@ -56,7 +56,7 @@ for i in range(len(uniques_samples)):
         size=150
     )
     
-    html = popup_html(df_info, i, vega_chart)
+    html = popup_html_from_df(df_info, i, vega_chart)
 
     iframe = folium.IFrame(html, width=550, height= 520)
     popup = folium.Popup(iframe)
