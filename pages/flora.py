@@ -247,7 +247,7 @@ if submit_button and not date_warning:  # or all_samples
 
         html_img = "".join(html_list)
         html = popup_html_from_mongo(document, html_img)
-        iframe = folium.IFrame(html, width=550, height=520)
+        iframe = folium.IFrame(html, width=800, height=520)
         popup = folium.Popup(iframe)
 
         # There are some sample without location
