@@ -14,3 +14,16 @@ st.set_page_config(
 
 st.title("Greensenti Visualization")
 
+# HOME PAGE
+
+"## Start Exploring"
+"""
+Currently there are three different display pages from different information sources:
+
+- `Flora`: In this page you will be able to visualize the data of the Flora database. To do so, you can
+            
+
+"""
+
+
+

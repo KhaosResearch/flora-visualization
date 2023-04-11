@@ -79,38 +79,29 @@ def popup_html_from_df(df, row, vega_chart):
 def generate_table_fom_dict(dict_sample):
 
     keys = list(dict_sample.keys())
-    print(keys)
     left_col_color = "#ADD8E6"
     right_col_color = "#c2c2c2"
-    header_list = []
-    table_data_list = []
+    table_list = []
     for ky in range(len(keys)):
-        print(keys[ky])
         if keys[ky] != "Pictures" and keys[ky] != "Species":
-            print("dvgcdvdvvdvd")
-            table_header = (
+            table = (
                 f"""
-            
-            <td style="background-color: """
-                + left_col_color
-                + """;"><span style= "margin-left: 4px;"> {} </span></td>""".format(
-                    keys[ky]
-                )
-                + """
+            <tr>
+                <th  """
+                    
+                    + """;"> {}</th>""".format(
+                        keys[ky]
+                    )
+                    + """
+                <td """
+                    
+                    + """;">{}</td>""".format(dict_sample[keys[ky]])
+                    + """
+            </tr>
             """
             )
-            header_list.append(table_header)
-
-            table_data = (
-                f"""
-            <td style="width: 150px;background-color: """
-                + right_col_color
-                + """;">{}</td>""".format(dict_sample[keys[ky]])
-                + """
-            """
-            )
-            table_data_list.append(table_data)
-    return header_list, table_data_list
+            table_list.append(table)
+    return table_list
 
 
 
@@ -121,62 +112,57 @@ def popup_html_from_mongo(sample, pics):
     
     keys = list(sample.keys())
     half = int(len(keys)/2)
-    #print("FFFFFFFFFFFFFFFFFFFFFFFFF",half)
+
     first_half = {k: sample[k] for k in list(sample)[:half]}
     last_half = {k: sample[k] for k in list(sample)[half:]}
-    #print("FFFFFFFFFFFFFFFFFFFFFFFFF",first_half)
-    
 
-    header_list_first, table_data_list_fist = generate_table_fom_dict(first_half)
-    header_list_last, table_data_list_last = generate_table_fom_dict(last_half)
+
+    first_table = generate_table_fom_dict(first_half)
+    last_table = generate_table_fom_dict(last_half)
     keys = list(sample.keys())
     left_col_color = "#ADD8E6"
     right_col_color = "#c2c2c2"
     html_list = []
-    html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega@5"></script>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
-    </head>
-    <body>
-    <table style="height: 126px; width: 350px;">
+  
+
+    # Add tag to open and close each table
+    first_table.insert(0, "<table border='1' class='dataframe'> <tbody>")
+    first_table.append("</tbody> </table>")
+
+    last_table.insert(0, "<table border='1' class='dataframe'> <tbody>")
+    last_table.append("</tbody> </table>")
+
+    last_table = "".join(last_table)
+    first_table = "".join(first_table)
+
+    html_table_div = f"""
+    <table style="border-collapse: collapse; width: 100%;" border="1">
     <tbody>
     <tr>
+        <td style="width: 50%;">{first_table}</td>
+        <td style="width: 50%;">{last_table}</td>
+    </tr>
+    </tbody>
+    </table>
+ 
+    
     """
-    html_list.append(html)
-
-
-    html_complete = html_list + header_list_first
-    html_complete.append(" </tr> <tr>")
-
-    html_complete = html_complete + table_data_list_fist
-    html_complete.append("</tr> <tr>")
-
-    html_complete = html_complete + header_list_last
-    html_complete.append(" </tr> <tr>")
-
-    html_complete = html_complete + table_data_list_last
-    html_complete.append("</tr>")
-
+    html_list.append(html_table_div)
+ 
     html_species = (
         f"""
-    <table style="height: 126px; width: 350px;">
-        <caption>Species</caption>
+    <table style= "width: 100%; margin-top: 10px" class='dataframe' border='1'>
+        <caption style="background-color:#3630a3; 
+                  color:white; 
+                  padding:5px;">Species</caption>
         <tr>
-            <td style="background-color: """
-        + left_col_color
-        + """;"><span style= "margin-left: 4px;"> Name </span></td>
-            <td style="background-color: """
-        + left_col_color
-        + """;"><span style= "margin-left: 4px;"> Ind </span></td>
+            <th> Name </th>
+            <th> Ind </span></th>
         </tr>
     
     """
     )
-    html_complete.append(html_species)
+    html_list.append(html_species)
     sample["Species"]
     species_sorted = sorted(sample["Species"], key=lambda d: d["Name"])
 
@@ -184,24 +170,20 @@ def popup_html_from_mongo(sample, pics):
         html_species_row = (
             """
             <tr>
-                <td style="background-color: """
-            + right_col_color
-            + """;"><span style= "margin-left: 4px;"> {} </span></td>""".format(
+                <td> {}</td>""".format(
                 species_sorted[sp]["Name"]
             )
             + """
-                <td style="background-color: """
-            + right_col_color
-            + """;"><span style= "margin-left: 4px;"> {} </span></td>""".format(
+                <td> {} </td>""".format(
                 species_sorted[sp]["Ind"]
             )
             + """
             </tr>"""
         )
-        html_complete.append(html_species_row)
+        html_list.append(html_species_row)
 
-    html_complete.append("</table>")
-    html_complete.append(pics)
-    html_def = "".join(html_complete)
+    html_list.append("</table>")
+    html_list.append(pics)
+    html_def = "".join(html_list)
 
     return html_def

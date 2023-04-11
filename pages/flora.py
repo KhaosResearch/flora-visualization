@@ -26,7 +26,6 @@ st.title("Flora map")
 date_warning = False
 crop_map = generate_map([37.3522, -4.64363], 8)
 
-# all_samples = st.sidebar.checkbox("View all samples")
 query_list = []
 option = st.sidebar.selectbox(
     "Select the form in which you want to visualize data", ("Filter data", "View all")
