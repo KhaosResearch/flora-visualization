@@ -58,14 +58,14 @@ for i in range(len(uniques_samples)):
             ],
         )
         .interactive()
-        .properties(width=350, height=300, title=uniques_samples[i])
+        .properties(width=400, height=300, title=uniques_samples[i])
         .configure_axis(labelFontSize=10, titleFontSize=10)
         .configure_point(size=150)
     )
 
     html = popup_html_from_df(df_info, i, vega_chart)
 
-    iframe = folium.IFrame(html, width=550, height=520)
+    iframe = folium.IFrame(html, width=600, height=520)
     popup = folium.Popup(iframe)
 
     marker = folium.Marker(
