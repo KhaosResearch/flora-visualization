@@ -8,7 +8,8 @@ from streamlit_folium import folium_static
 from config import settings
 from minio_client import minio_connection
 from mongo_client import get_collection_object
-from utils import generate_map, popup_html_from_mongo
+from utils import (diacritic_sensitive_regex, generate_map,
+                   popup_html_from_mongo)
 
 # Set the page configuration
 st.set_page_config(layout="wide")
@@ -21,7 +22,6 @@ client = minio_connection(
     settings.MINIO_ACCESS_KEY_FLORA, settings.MINIO_SECRET_KEY_FLORA
 )
 
-
 st.title("Flora map")
 date_warning = False
 crop_map = generate_map([37.3522, -4.64363], 8)
@@ -30,6 +30,8 @@ query_list = []
 option = st.sidebar.selectbox(
     "Select the form in which you want to visualize data", ("Filter data", "View all")
 )
+
+
 if option == "Filter data":
     with st.sidebar.form(key="my_form"):
 
@@ -58,6 +60,7 @@ if option == "Filter data":
         community_unique = collection.distinct(
             "Community", {"Community": {"$ne": None}}
         )
+
         community = st.multiselect("Community", community_unique, help="Optional")
 
         subcommunity_unique = collection.distinct(
@@ -86,13 +89,19 @@ if option == "Filter data":
             "Location",
             help="Optional. Search for multiple locations by typing them with a comma between them. Such as 'locaion1,location2'.",
         )
+        # Check if this location is in the DB
         if location and not all(elem == "" for elem in location):
             location = location.split(",")
             cnt = 0
             for element in location:
                 if element != "":
                     for result in collection.find(
-                        {"Location": {"$regex": element, "$options": "i"}}
+                        {
+                            "Location": {
+                                "$regex": diacritic_sensitive_regex(element),
+                                "$options": "i",
+                            }
+                        }
                     ):
                         cnt += 1
             if cnt == 0:
@@ -182,7 +191,12 @@ if option == "Filter data":
             if len(particular_location) > 0:
                 location_empty = False
                 location_exp.append(
-                    {"Location": {"$regex": particular_location, "$options": "i"}}
+                    {
+                        "Location": {
+                            "$regex": diacritic_sensitive_regex(particular_location),
+                            "$options": "i",
+                        }
+                    }
                 )
         if len(location_exp) > 1:
             location_dict = {"$or": location_exp}
@@ -212,6 +226,7 @@ if option == "Filter data":
 if option == "View all":
     with st.sidebar.form(key="my_form"):
         submit_button = st.form_submit_button(label="Search", help="Submit Button")
+
 try:
     print("Query list", query_list)
     # If the query list is not empty, use it to find matching documents in the MongoDB collection
@@ -249,7 +264,7 @@ if submit_button and not date_warning:  # or all_samples
         iframe = folium.IFrame(html, width=800, height=520)
         popup = folium.Popup(iframe)
 
-        # There are some sample without location
+        # There are some sample without longitude-latitude
         if document["Latitude"] and document["Longitude"]:
             marker = folium.Marker(
                 [document["Latitude"], document["Longitude"]],

@@ -1,12 +1,15 @@
+import re
+
 import folium
-from folium.plugins import (Draw, Fullscreen, LocateControl, MeasureControl,
-                            MousePosition)
-import pandas as pd
 import numpy as np
+import pandas as pd
+from folium.plugins import (Fullscreen, LocateControl, MeasureControl,
+                            MousePosition)
+
 
 def generate_map(location, zoom) -> folium.Map:
     map_folium = folium.Map(location=location, zoom_start=zoom)
-    
+
     Fullscreen().add_to(map_folium)
     LocateControl().add_to(map_folium)
     MousePosition().add_to(map_folium)
@@ -29,15 +32,14 @@ def generate_map(location, zoom) -> folium.Map:
 
 
 def popup_html_from_df(df, row, vega_chart):
-    
+
     i = row
-    half = len(df.columns)/2
-    first_half = df.iloc[i,:int(half)]
-    last_half = df.iloc[i,int(half):]
+    half = len(df.columns) / 2
+    first_half = df.iloc[i, : int(half)]
+    last_half = df.iloc[i, int(half) :]
 
-
-    html_first_table = pd.DataFrame(first_half).to_html(header = False)
-    html_last_table = pd.DataFrame(last_half).to_html(header = False)
+    html_first_table = pd.DataFrame(first_half).to_html(header=False)
+    html_last_table = pd.DataFrame(last_half).to_html(header=False)
     header_html = f"""
     <!DOCTYPE html>
     <html>
@@ -71,10 +73,11 @@ def popup_html_from_df(df, row, vega_chart):
     
     """
     html_def = header_html + html_chart + html_table_div + " </body> </html>"
-    
+
     print(html_first_table)
 
     return html_def
+
 
 def generate_table_fom_dict(dict_sample):
 
@@ -88,15 +91,11 @@ def generate_table_fom_dict(dict_sample):
                 f"""
             <tr>
                 <th  """
-                    
-                    + """;"> {}</th>""".format(
-                        keys[ky]
-                    )
-                    + """
+                + """;"> {}</th>""".format(keys[ky])
+                + """
                 <td """
-                    
-                    + """;">{}</td>""".format(dict_sample[keys[ky]])
-                    + """
+                + """;">{}</td>""".format(dict_sample[keys[ky]])
+                + """
             </tr>
             """
             )
@@ -104,18 +103,15 @@ def generate_table_fom_dict(dict_sample):
     return table_list
 
 
-
-
 def popup_html_from_mongo(sample, pics):
-    #print(sample)
+    # print(sample)
     sample.pop("Pictures")
-    
+
     keys = list(sample.keys())
-    half = int(len(keys)/2)
+    half = int(len(keys) / 2)
 
     first_half = {k: sample[k] for k in list(sample)[:half]}
     last_half = {k: sample[k] for k in list(sample)[half:]}
-
 
     first_table = generate_table_fom_dict(first_half)
     last_table = generate_table_fom_dict(last_half)
@@ -123,7 +119,6 @@ def popup_html_from_mongo(sample, pics):
     left_col_color = "#ADD8E6"
     right_col_color = "#c2c2c2"
     html_list = []
-  
 
     # Add tag to open and close each table
     first_table.insert(0, "<table border='1' class='dataframe'> <tbody>")
@@ -148,9 +143,8 @@ def popup_html_from_mongo(sample, pics):
     
     """
     html_list.append(html_table_div)
- 
-    html_species = (
-        f"""
+
+    html_species = f"""
     <table style= "width: 100%; margin-top: 10px" class='dataframe' border='1'>
         <caption style="background-color:#3630a3; 
                   color:white; 
@@ -161,7 +155,6 @@ def popup_html_from_mongo(sample, pics):
         </tr>
     
     """
-    )
     html_list.append(html_species)
     sample["Species"]
     species_sorted = sorted(sample["Species"], key=lambda d: d["Name"])
@@ -187,3 +180,17 @@ def popup_html_from_mongo(sample, pics):
     html_def = "".join(html_list)
 
     return html_def
+
+
+def diacritic_sensitive_regex(string):
+    string = re.sub(r"[aáàäâ]", "[a,á,à,ä,â]", string)
+    string = re.sub(r"[AÁÀÄÂ]", "[A,a,á,à,ä,â]", string)
+    string = re.sub(r"[eéëè]", "[e,é,ë,è]", string)
+    string = re.sub(r"[EÉËÈ]", "[E,e,é,ë,è]", string)
+    string = re.sub(r"[iíïì]", "[i,í,ï,ì]", string)
+    string = re.sub(r"[IÍÏÌ]", "[I,i,í,ï,ì]", string)
+    string = re.sub(r"[oóöò]", "[o,ó,ö,ò]", string)
+    string = re.sub(r"[OÓÖÒ]", "[O,o,ó,ö,ò]", string)
+    string = re.sub(r"[uúüù]", "[u,ü,ú,ù]", string)
+    string = re.sub(r"[UÚÜÙ]", "[U,u,ü,ú,ù]", string)
+    return string
