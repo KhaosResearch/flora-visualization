@@ -74,16 +74,12 @@ def popup_html_from_df(df, row, vega_chart):
     """
     html_def = header_html + html_chart + html_table_div + " </body> </html>"
 
-    print(html_first_table)
-
     return html_def
 
 
 def generate_table_fom_dict(dict_sample):
 
     keys = list(dict_sample.keys())
-    left_col_color = "#ADD8E6"
-    right_col_color = "#c2c2c2"
     table_list = []
     for ky in range(len(keys)):
         if keys[ky] != "Pictures" and keys[ky] != "Species":
@@ -91,10 +87,10 @@ def generate_table_fom_dict(dict_sample):
                 f"""
             <tr>
                 <th  """
-                + """;"> {}</th>""".format(keys[ky])
+                + """> {}</th>""".format(keys[ky])
                 + """
                 <td """
-                + """;">{}</td>""".format(dict_sample[keys[ky]])
+                + """>{}</td>""".format(dict_sample[keys[ky]])
                 + """
             </tr>
             """
@@ -116,8 +112,6 @@ def popup_html_from_mongo(sample, pics):
     first_table = generate_table_fom_dict(first_half)
     last_table = generate_table_fom_dict(last_half)
     keys = list(sample.keys())
-    left_col_color = "#ADD8E6"
-    right_col_color = "#c2c2c2"
     html_list = []
 
     # Add tag to open and close each table

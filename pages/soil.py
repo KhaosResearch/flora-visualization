@@ -15,6 +15,7 @@ st.title("Soil map")
 
 
 soil_map = generate_map([36.71485, -4.49663], 15)
+
 df_vegetation = pd.read_csv("./data/vegetationindex.csv", delimiter=",")
 df_info = pd.read_csv("./data/results.csv", delimiter=",")
 
@@ -23,10 +24,12 @@ df_vegetation["DATE"] = [
 ]
 uniques_samples = df_vegetation["SAMPLE"].unique()
 
-
+location = []
 for i in range(len(uniques_samples)):
+
     sample = df_vegetation.loc[df_vegetation["SAMPLE"] == uniques_samples[i]]
     sample = sample.reset_index(drop=True)
+    location.append([sample["LONGITUDE"][0], sample["LATITUDE"][0]])
 
     # Transform the df to plot multiple columns in the Y axis
     sample_band_info = sample.melt(
@@ -39,8 +42,6 @@ for i in range(len(uniques_samples)):
         [sample["CLASS"]] * len(["NDVI", "SLAVI", "GVMI", "NDWI", "BSI", "NPCRI"]),
         ignore_index=True,
     )
-
-    # g= sample_band_info.append([{"class": v} for v in gh], ignore_index=True)
 
     vega_chart = (
         alt.Chart(sample_band_info)
@@ -75,5 +76,6 @@ for i in range(len(uniques_samples)):
     ).add_to(soil_map)
     soil_map.add_child(marker)
 
+soil_map.fit_bounds(location)
 # Add the map to the Streamlit app
 folium_static(soil_map, height=700, width=1300)

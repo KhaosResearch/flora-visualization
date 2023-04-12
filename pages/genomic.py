@@ -51,8 +51,9 @@ except Exception as e:
 
 # For each matching document, create a marker on the map with a popup containing the document's images
 
-
+location = []
 for document in cursor:
+    location.append([document["Latitude"], document["Longitude"]])
     # There are some sample without location
     if document["Latitude"] and document["Longitude"]:
         marker = folium.Marker(
@@ -62,5 +63,6 @@ for document in cursor:
         ).add_to(genom_map)
         genom_map.add_child(marker)
 
+genom_map.fit_bounds(location)
 
 folium_static(genom_map, height=700, width=1300)
