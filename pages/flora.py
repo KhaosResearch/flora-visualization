@@ -1,14 +1,18 @@
 import base64
 import datetime
+import io
+import os
 
 import folium
 import streamlit as st
+from PIL import Image
 from streamlit_folium import folium_static
 
 from config import settings
 from minio_client import minio_connection
 from mongo_client import get_collection_object
-from utils import generate_map, popup_html_from_mongo
+from utils import (diacritic_sensitive_regex, generate_map,
+                   popup_html_from_mongo)
 
 # Set the page configuration
 st.set_page_config(layout="wide")
@@ -21,16 +25,16 @@ client = minio_connection(
     settings.MINIO_ACCESS_KEY_FLORA, settings.MINIO_SECRET_KEY_FLORA
 )
 
-
 st.title("Flora map")
 date_warning = False
-crop_map = generate_map([37.3522, -4.64363], 8)
+soil_map = generate_map([37.3522, -4.64363], 8)
 
-# all_samples = st.sidebar.checkbox("View all samples")
 query_list = []
 option = st.sidebar.selectbox(
     "Select the form in which you want to visualize data", ("Filter data", "View all")
 )
+
+
 if option == "Filter data":
     with st.sidebar.form(key="my_form"):
 
@@ -59,6 +63,7 @@ if option == "Filter data":
         community_unique = collection.distinct(
             "Community", {"Community": {"$ne": None}}
         )
+
         community = st.multiselect("Community", community_unique, help="Optional")
 
         subcommunity_unique = collection.distinct(
@@ -85,15 +90,25 @@ if option == "Filter data":
 
         location = st.text_input(
             "Location",
-            help="Optional. Search for multiple locations by typing them with a comma between them. Such as 'locaion1,location2'.",
+            help=f"Optional. Search for multiple locations by typing them with a comma between them. "
+            f"Due to the disparity in the data, the input for this input will be a string of locations separated by commas,"
+            f"so if you want to search for Cabo de gata and Sierra de las nieves, for example, the way to enter that data would be"
+            f"'Cabo de gata,Sierra de las nieves' (not including single quotes('')). The accents and capitalization are checked,"
+            f"so the word 'Rio' and 'riO' will get the same results.",
         )
+        # Check if this location is in the DB
         if location and not all(elem == "" for elem in location):
             location = location.split(",")
             cnt = 0
             for element in location:
                 if element != "":
                     for result in collection.find(
-                        {"Location": {"$regex": element, "$options": "i"}}
+                        {
+                            "Location": {
+                                "$regex": diacritic_sensitive_regex(element),
+                                "$options": "i",
+                            }
+                        }
                     ):
                         cnt += 1
             if cnt == 0:
@@ -183,7 +198,12 @@ if option == "Filter data":
             if len(particular_location) > 0:
                 location_empty = False
                 location_exp.append(
-                    {"Location": {"$regex": particular_location, "$options": "i"}}
+                    {
+                        "Location": {
+                            "$regex": diacritic_sensitive_regex(particular_location),
+                            "$options": "i",
+                        }
+                    }
                 )
         if len(location_exp) > 1:
             location_dict = {"$or": location_exp}
@@ -213,6 +233,7 @@ if option == "Filter data":
 if option == "View all":
     with st.sidebar.form(key="my_form"):
         submit_button = st.form_submit_button(label="Search", help="Submit Button")
+
 try:
     print("Query list", query_list)
     # If the query list is not empty, use it to find matching documents in the MongoDB collection
@@ -226,17 +247,49 @@ except Exception as e:
 
 
 # For each matching document, create a marker on the map with a popup containing the document's images
-
+long_lat = []
 
 if submit_button and not date_warning:  # or all_samples
     for document in cursor:
         num_pics = len(document["Pictures"])
         html_list = []
+        long_lat.append([document["Latitude"], document["Longitude"]])
         for i in range(num_pics):
-            # Retrieve and encode the image from Minio
+            MAX_SIZE = 1000000
+            # delete the bucket from the path in mongo. If not, in client.getobject the bucket name is duplicated
             path = (document["Pictures"][i]).split("/", 1)[1]
+            # Retrieve and encode the image from Minio
             minio_image = (client.get_object(settings.MINIO_BUCKET_FLORA, path)).read()
-            encoded = base64.b64encode(minio_image).decode()
+
+            # Load the image into PIL
+            image = Image.open(io.BytesIO(minio_image))
+            if len(minio_image) > MAX_SIZE:
+                # Calculate the new size while maintaining aspect ratio
+                w, h = image.size
+                ratio = w / h
+                new_w = int((MAX_SIZE / 2) ** 0.5 * ratio)
+                new_h = int((MAX_SIZE / 2) ** 0.5 / ratio)
+
+                # Resize the image and save to a buffer
+                image = image.resize((new_w, new_h))
+                buffer = io.BytesIO()
+
+                # Get the file extension of the original image
+                file_extension = os.path.splitext(path)[1].lower()
+
+                # Save the resized image to a buffer in the appropriate format
+                if file_extension == ".png":
+                    image.save(buffer, format="PNG", optimize=True, quality=75)
+                else:
+                    image.save(buffer, format="JPEG", optimize=True, quality=75)
+
+                # Get the bytes of the resized image
+                resized_image = buffer.getvalue()
+            else:
+                # Use the original image if it's already small enough
+                resized_image = minio_image
+
+            encoded = base64.b64encode(resized_image).decode()
             # Create HTML code to display the image
             html = f""" <table>
                                 <tr>
@@ -247,17 +300,18 @@ if submit_button and not date_warning:  # or all_samples
 
         html_img = "".join(html_list)
         html = popup_html_from_mongo(document, html_img)
-        iframe = folium.IFrame(html, width=550, height=520)
+        iframe = folium.IFrame(html, width=800, height=520)
         popup = folium.Popup(iframe)
 
-        # There are some sample without location
+        # There are some sample without longitude-latitude
         if document["Latitude"] and document["Longitude"]:
             marker = folium.Marker(
                 [document["Latitude"], document["Longitude"]],
                 popup=popup,
                 tooltip=document["Community"],
-            ).add_to(crop_map)
-            crop_map.add_child(marker)
+            ).add_to(soil_map)
+            soil_map.add_child(marker)
 
+soil_map.fit_bounds(long_lat)
 
-folium_static(crop_map, height=700, width=1300)
+folium_static(soil_map, height=700, width=1300)

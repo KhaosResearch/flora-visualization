@@ -1,5 +1,9 @@
+import re
+
 import folium
-from folium.plugins import (Draw, Fullscreen, LocateControl, MeasureControl,
+import numpy as np
+import pandas as pd
+from folium.plugins import (Fullscreen, LocateControl, MeasureControl,
                             MousePosition)
 
 
@@ -10,16 +14,33 @@ def generate_map(location, zoom) -> folium.Map:
     LocateControl().add_to(map_folium)
     MousePosition().add_to(map_folium)
     MeasureControl("bottomleft").add_to(map_folium)
+    map_layers_dict = {
+        "World Street Map": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+        "Satellite": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        "Google Maps": "https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",
+        "Google Satellite": "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+        "Google Terrain": "https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}",
+        "Google Satellite Hybrid": "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
+    }
+    for layer in map_layers_dict:
+        folium.TileLayer(
+            tiles=map_layers_dict[layer], attr=layer, name=layer, show=False
+        ).add_to(map_folium)
 
+    folium.LayerControl(position="bottomleft").add_to(map_folium)
     return map_folium
 
 
 def popup_html_from_df(df, row, vega_chart):
+
     i = row
-    left_col_color = "#ADD8E6"
-    right_col_color = "#c2c2c2"
-    html_list = []
-    html = f"""
+    half = len(df.columns) / 2
+    first_half = df.iloc[i, : int(half)]
+    last_half = df.iloc[i, int(half) :]
+
+    html_first_table = pd.DataFrame(first_half).to_html(header=False)
+    html_last_table = pd.DataFrame(last_half).to_html(header=False)
+    header_html = f"""
     <!DOCTYPE html>
     <html>
     <head>
@@ -28,129 +49,107 @@ def popup_html_from_df(df, row, vega_chart):
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
     </head>
     <body>
-    <table style="height: 126px; width: 350px;">
-    <tbody>
-    <tr>
     """
-    html_list.append(html)
-    header_list = []
-    table_data_list = []
-    for c in range(len(df.columns)):
-        table_header = (
-            f"""
-        
-        <td style="background-color: """
-            + left_col_color
-            + """;"><span style= "margin-left: 4px;"> {} </span></td>""".format(
-                df.columns[c]
-            )
-            + """
-        """
-        )
-        header_list.append(table_header)
-
-        table_data = (
-            f"""
-        <td style="width: 150px;background-color: """
-            + right_col_color
-            + """;">{}</td>""".format(df.loc[i][c])
-            + """
-        """
-        )
-        table_data_list.append(table_data)
-        # </tr>
-
-    html_complete = html_list + header_list
-    html_complete.append(" </tr> <tr>")
-
-    html_complete = html_complete + table_data_list
-    html_complete.append("</tr>")
 
     html_chart = f"""
-    </tbody>
-    </table>
+    
     <div id="vis1"></div>
 
     <script type="text/javascript">
     vegaEmbed('#vis1', {vega_chart.to_json(indent=None)})
     </script>
-    </body>
-    </html>
     """
-    html_complete.append(html_chart)
-    html_def = "".join(html_complete)
+
+    html_table_div = f"""
+    <table style="border-collapse: collapse; width: 100%;" border="1">
+    <tbody>
+    <tr>
+    <td style="width: 50%;">{html_first_table}</td>
+    <td style="width: 50%;">{html_last_table}</td>
+    </tr>
+    </tbody>
+    </table>
+ 
+    
+    """
+    html_def = header_html + html_chart + html_table_div + " </body> </html>"
 
     return html_def
 
 
+def generate_table_fom_dict(dict_sample):
+
+    keys = list(dict_sample.keys())
+    table_list = []
+    for ky in range(len(keys)):
+        if keys[ky] != "Pictures" and keys[ky] != "Species":
+            table = (
+                f"""
+            <tr>
+                <th  """
+                + """> {}</th>""".format(keys[ky])
+                + """
+                <td """
+                + """>{}</td>""".format(dict_sample[keys[ky]])
+                + """
+            </tr>
+            """
+            )
+            table_list.append(table)
+    return table_list
+
+
 def popup_html_from_mongo(sample, pics):
+    # print(sample)
+    sample.pop("Pictures")
+
     keys = list(sample.keys())
-    left_col_color = "#ADD8E6"
-    right_col_color = "#c2c2c2"
+    half = int(len(keys) / 2)
+
+    first_half = {k: sample[k] for k in list(sample)[:half]}
+    last_half = {k: sample[k] for k in list(sample)[half:]}
+
+    first_table = generate_table_fom_dict(first_half)
+    last_table = generate_table_fom_dict(last_half)
+    keys = list(sample.keys())
     html_list = []
-    html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega@5"></script>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
-    </head>
-    <body>
-    <table style="height: 126px; width: 350px;">
+
+    # Add tag to open and close each table
+    first_table.insert(0, "<table border='1' class='dataframe'> <tbody>")
+    first_table.append("</tbody> </table>")
+
+    last_table.insert(0, "<table border='1' class='dataframe'> <tbody>")
+    last_table.append("</tbody> </table>")
+
+    last_table = "".join(last_table)
+    first_table = "".join(first_table)
+
+    html_table_div = f"""
+    <table style="border-collapse: collapse; width: 100%;" border="1">
     <tbody>
     <tr>
+        <td style="width: 50%;">{first_table}</td>
+        <td style="width: 50%;">{last_table}</td>
+    </tr>
+    </tbody>
+    </table>
+ 
+    
     """
-    html_list.append(html)
-    header_list = []
-    table_data_list = []
-    for k in range(len(keys)):
-        if keys[k] != "Pictures" and keys[k] != "Species":
-            table_header = (
-                f"""
-            
-            <td style="background-color: """
-                + left_col_color
-                + """;"><span style= "margin-left: 4px;"> {} </span></td>""".format(
-                    keys[k]
-                )
-                + """
-            """
-            )
-            header_list.append(table_header)
+    html_list.append(html_table_div)
 
-            table_data = (
-                f"""
-            <td style="width: 150px;background-color: """
-                + right_col_color
-                + """;">{}</td>""".format(sample[keys[k]])
-                + """
-            """
-            )
-            table_data_list.append(table_data)
-
-    html_complete = html_list + header_list
-    html_complete.append(" </tr> <tr>")
-
-    html_complete = html_complete + table_data_list
-    html_complete.append("</tr>")
-
-    html_species = (
-        f"""
-    <table style="height: 126px; width: 350px;">
-        <caption>Species</caption>
+    html_species = f"""
+    <table style= "width: 100%; margin-top: 10px" class='dataframe' border='1'>
+        <caption style="background-color:#3630a3; 
+                  color:white; 
+                  padding:5px;">Species</caption>
         <tr>
-            <td style="background-color: """
-        + left_col_color
-        + """;"><span style= "margin-left: 4px;"> Name </span></td>
-            <td style="background-color: """
-        + left_col_color
-        + """;"><span style= "margin-left: 4px;"> Ind </span></td>
+            <th> Name </th>
+            <th> Ind </span></th>
         </tr>
     
     """
-    )
-    html_complete.append(html_species)
+    html_list.append(html_species)
     sample["Species"]
     species_sorted = sorted(sample["Species"], key=lambda d: d["Name"])
 
@@ -158,24 +157,34 @@ def popup_html_from_mongo(sample, pics):
         html_species_row = (
             """
             <tr>
-                <td style="background-color: """
-            + right_col_color
-            + """;"><span style= "margin-left: 4px;"> {} </span></td>""".format(
+                <td> {}</td>""".format(
                 species_sorted[sp]["Name"]
             )
             + """
-                <td style="background-color: """
-            + right_col_color
-            + """;"><span style= "margin-left: 4px;"> {} </span></td>""".format(
+                <td> {} </td>""".format(
                 species_sorted[sp]["Ind"]
             )
             + """
             </tr>"""
         )
-        html_complete.append(html_species_row)
+        html_list.append(html_species_row)
 
-    html_complete.append("</table>")
-    html_complete.append(pics)
-    html_def = "".join(html_complete)
+    html_list.append("</table>")
+    html_list.append(pics)
+    html_def = "".join(html_list)
 
     return html_def
+
+
+def diacritic_sensitive_regex(string):
+    string = re.sub(r"[aáàäâ]", "[a,á,à,ä,â]", string)
+    string = re.sub(r"[AÁÀÄÂ]", "[A,a,á,à,ä,â]", string)
+    string = re.sub(r"[eéëè]", "[e,é,ë,è]", string)
+    string = re.sub(r"[EÉËÈ]", "[E,e,é,ë,è]", string)
+    string = re.sub(r"[iíïì]", "[i,í,ï,ì]", string)
+    string = re.sub(r"[IÍÏÌ]", "[I,i,í,ï,ì]", string)
+    string = re.sub(r"[oóöò]", "[o,ó,ö,ò]", string)
+    string = re.sub(r"[OÓÖÒ]", "[O,o,ó,ö,ò]", string)
+    string = re.sub(r"[uúüù]", "[u,ü,ú,ù]", string)
+    string = re.sub(r"[UÚÜÙ]", "[U,u,ü,ú,ù]", string)
+    return string
