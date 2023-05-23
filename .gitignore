@@ -1,0 +1,14 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+#pyest
+.pytest_cache
+
+#virtual env
+green/
+
+.env
+
+/data
+gvisual/

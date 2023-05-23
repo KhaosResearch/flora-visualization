@@ -1,5 +1,5 @@
 import re
-
+import geopandas as gpd
 import folium
 import numpy as np
 import pandas as pd
@@ -77,7 +77,7 @@ def popup_html_from_df(df, row, vega_chart):
     return html_def
 
 
-def generate_table_fom_dict(dict_sample):
+def generate_table_from_dict(dict_sample):
 
     keys = list(dict_sample.keys())
     table_list = []
@@ -109,8 +109,8 @@ def popup_html_from_mongo(sample, pics):
     first_half = {k: sample[k] for k in list(sample)[:half]}
     last_half = {k: sample[k] for k in list(sample)[half:]}
 
-    first_table = generate_table_fom_dict(first_half)
-    last_table = generate_table_fom_dict(last_half)
+    first_table = generate_table_from_dict(first_half)
+    last_table = generate_table_from_dict(last_half)
     keys = list(sample.keys())
     html_list = []
 
@@ -188,3 +188,13 @@ def diacritic_sensitive_regex(string):
     string = re.sub(r"[uúüù]", "[u,ü,ú,ù]", string)
     string = re.sub(r"[UÚÜÙ]", "[U,u,ü,ú,ù]", string)
     return string
+
+
+
+
+def filter_by_region(df, region):
+    gdf_reg = gpd.read_file(region)
+    df_intersection = gpd.sjoin(df, gdf_reg, predicate='within')
+    df_region_filter = df[df.index.isin(df_intersection.index)]
+
+    return df_region_filter

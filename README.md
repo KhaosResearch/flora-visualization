@@ -10,8 +10,12 @@ streamlit run main.py
 
 ### Build
 
+To build the image you will need to add a folder called `data` with the following files:
+ * results.csv 
+ * vegetationindex.csv
+
 ```
-docker build -t app_greensenti_visualize:1.0.0 -f GREENSENTI-VISUALIZE.dockerfile .
+docker build -t app_greensenti_visualize:1.0.1 -f GREENSENTI-VISUALIZE.dockerfile .
 ```
 
 ### Run
@@ -22,6 +26,6 @@ After that, create a `.env` file and fill the environment variables from the pro
 Then, run the docker container as follows
 
 ```
-docker run -p 8501:8501 --env-file .env -d app_greensenti_visualize:1.0.0
+docker run -p 8501:8501 --env-file .env -d app_greensenti_visualize:1.0.1
 
 ```
