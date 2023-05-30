@@ -10,8 +10,7 @@ from folium.plugins import MarkerCluster,HeatMap
 
 from minio_client import minio_connection
 from mongo_client import get_collection_object
-from utils import (diacritic_sensitive_regex,
-                   popup_html_from_mongo)
+from utils import (popup_html_from_mongo)
 
 # Set the page configuration
 st.set_page_config(layout="wide")
