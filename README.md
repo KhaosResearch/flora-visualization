@@ -1,31 +1,31 @@
-# greensenti-visualization
-To run the app just run:
+# Flora-visualization
 
-```
-streamlit run main.py
+Application for visualizing the Floras inventory data on a map.
 
-```
+## Deployment
 
-## DOCKER
+To run the app:
 
-### Build
+### Install dependences
 
-To build the image you will need to add a folder called `data` with the following files:
- * results.csv 
- * vegetationindex.csv
-
-```
-docker build -t app_greensenti_visualize:1.0.1 -f GREENSENTI-VISUALIZE.dockerfile .
+```bash
+python3 -m pip install -r requirements.txt
 ```
 
-### Run
+### Run dev
 
+Create a `.env` file similar to `.env.template` and fill in the values.
 
-After that, create a `.env` file and fill the environment variables from the provided template.
+`--server.baseUrlPath`: Initial application path
+`--server.port`: Port on which the app will be launched
 
-Then, run the docker container as follows
-
+```bash
+streamlit run main.py --server.baseUrlPath=/services/flora/visualization --server.port=5025
 ```
-docker run -p 8501:8501 --env-file .env -d app_greensenti_visualize:1.0.1
 
+### Docker
+
+```bash
+docker build -t app_flora_visualization:1.0.0 .
+docker run --env-file .env -p 5015:8501 -d app_flora_visualization:1.0.0
 ```
