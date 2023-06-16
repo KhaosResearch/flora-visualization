@@ -60,12 +60,56 @@ def generate_table_from_dict(dict_sample):
     keys = list(dict_sample.keys())
     table_list = []
     for ky in range(len(keys)):
-        if keys[ky] != "Pictures" and keys[ky] != "Species":
+        if keys[ky] != "Pictures" and keys[ky] != "Species" and keys[ky] != "_id":
+            if keys[ky]=="specieName":
+                key_table="Species Name"
+            if keys[ky]=="ENBIC2ID":
+                key_table="ENBIC2ID"
+            if keys[ky]=="NaturalSite":
+                key_table="Natural Site"
+            if keys[ky]=="gbifID":
+                key_table="gbifID"
+            if keys[ky]=="institutionCode":
+                key_table="Institution Code"
+            if keys[ky]=="catalogNumber":
+                key_table="Catalog Number"
+            if keys[ky]=="scientificName":
+                key_table="Scientific Name"
+            if keys[ky]=="aut_infra":
+                key_table="aut_infra"
+            if keys[ky]=="taxonRankInterpreted":
+                key_table="Taxon Rank Interpreted"
+            if keys[ky]=="speciesInterpreted":
+                key_table="Species Interpreted"
+            if keys[ky]=="identifiedBy":
+                key_table="Identified By"
+            if keys[ky]=="dateIdentified":
+                key_table="Date Identified"
+            if keys[ky]=="countryCode":
+                key_table="Country Code"
+            if keys[ky]=="stateProvince":
+                key_table="State Province"
+            if keys[ky]=="locality":
+                key_table="Locality"
+            if keys[ky]=="decimalLatitude":
+                key_table="Latitude"
+            if keys[ky]=="decimalLongitude":
+                key_table="Longitude"
+            if keys[ky]=="MGRS":
+                key_table="MGRS"
+            if keys[ky]=="coordinateUncertaintyInMeters":
+                key_table="Coordinate Uncertainty(m)"
+            if keys[ky]=="elevation":
+                key_table="Elevation"
+            if keys[ky]=="eventDate":
+                key_table="EventDate"
+            if keys[ky]=="remarks":
+                key_table="Remarks"
             table = (
                 f"""
             <tr>
                 <th  """
-                + """> {}</th>""".format(keys[ky])
+                + """> {}</th>""".format(key_table)
                 + """
                 <td """
                 + """>{}</td>""".format(dict_sample[keys[ky]])
