@@ -27,5 +27,5 @@ streamlit run main.py --server.baseUrlPath=/services/flora/visualization --serve
 
 ```bash
 docker build -t app_flora_visualization:1.0.0 .
-docker run --env-file .env -p 5015:8501 -d app_flora_visualization:1.0.0
-```
+docker run --env-file ../.env -p 5025:8501 -d app_flora_visualization:1.0.0
+
