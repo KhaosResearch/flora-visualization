@@ -12,3 +12,6 @@ green/
 
 /data
 gvisual/
+
+new_env/
+.gitignore
